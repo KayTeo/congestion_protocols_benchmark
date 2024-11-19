@@ -1,43 +1,45 @@
-% Parameters
-cwnd_init = 1;         % Initial congestion window size (MSS units)
-cwnd_max = 100;        % Maximum congestion window before packet loss
-cwnd_min = cwnd_init;  % Minimum congestion window (reset after loss)
-alpha = 1;             % Additive increase factor (for each RTT)
-beta = 0.5;            % Multiplicative decrease factor (on packet loss)
-num_cycles = 5;        % Number of sawtooth cycles to simulate
 
-% Initialize variables
-cwnd = cwnd_init;      % Current congestion window size
-time = 0;              % Current time
-RTT = 1;               % Round-trip time (RTT, in arbitrary time units)
-time_array = [];
-cwnd_array = [];
+initial_cwnd = 1;  
+ssthresh = 4500;  
+mss = 1500;        
+max_cwnd = 65535;  
+simulation_time = 100;  
 
-% Simulate TCP Reno's sawtooth pattern
-for cycle = 1:num_cycles
-    % Additive Increase phase (until cwnd reaches cwnd_max)
-    while cwnd < cwnd_max
-        time_array = [time_array, time];
-        cwnd_array = [cwnd_array, cwnd];
+
+cwnd = initial_cwnd;
+time = 0:simulation_time-1;
+cwnd_values = zeros(1, simulation_time);
+
+
+for i = 1:simulation_time
+    if cwnd < ssthresh
         
-        % Increment congestion window
-        cwnd = cwnd + alpha;
-        time = time + RTT;
+        cwnd = cwnd * 2;
+    else
+        
+        cwnd = cwnd + 1;
     end
     
-    % Multiplicative Decrease phase (packet loss event)
-    time_array = [time_array, time];
-    cwnd_array = [cwnd_array, cwnd];
     
-    % Apply multiplicative decrease
-    cwnd = max(cwnd * beta, cwnd_min);
-    time = time + RTT;
+    if cwnd * mss > max_cwnd
+        cwnd = floor(max_cwnd / mss);
+    end
+    
+    
+    if mod(i, 20) == 0
+        ssthresh = max(floor(cwnd / 2), 2);
+        cwnd = cwnd / 2;
+    end
+    
+    cwnd_values(i) = cwnd * mss;
 end
 
-% Plot the results
+
 figure;
-plot(time_array, cwnd_array, '-b', 'LineWidth', 2);
-title('TCP Reno Steady-State Sawtooth');
-xlabel('Time (RTT units)');
-ylabel('Congestion Window (cwnd, in MSS units)');
+plot(time, cwnd_values, 'b-', 'LineWidth', 2);
+xlabel('Time (RTTs)');
+ylabel('Congestion Window Size (bytes)');
+title('TCP Reno Sawtooth Congestion Window');
 grid on;
+
+
